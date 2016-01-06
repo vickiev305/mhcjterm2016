@@ -42,10 +42,13 @@ class NewVisitorTest(LiveServerTestCase):
         # (Edith's hobby is tying fly-fishing lures)
 
 
-        #When she hits enter, the page updates, and now the page lists
-        # "1. Buy peacock feathers" as an item in a to-do lists
+        #When she hits enter,she is taken to a new url and now the page lists
+        #and now the page lists "1. Buy peacock feathers"
+        #  as an item in a to-do lists
         self.enter_a_new_item('Buy peacock feathers')
 
+        edith_list_url = self.browser.current_url
+        self.assertRegexpMatches(edith_list_url, '/lists/.+')
         self.check_for_row_in_list_table('1. Buy peacock feathers')
 
 
@@ -58,13 +61,31 @@ class NewVisitorTest(LiveServerTestCase):
         self.check_for_row_in_list_table('1. Buy peacock feathers')
         self.check_for_row_in_list_table('2. Use peacock feathers to make fly')
 
+        #Now a new user, Francis, comes along
 
-        #Edith wonders whether the site will remeber her list. Then she sees
-        #that the site has generated a unique URL for her -- there is some
-        #explanatory text to that effect.
+        #We use a new browser session to make sure no information
+        #of Edith's comes along (EG cookies, localStorage)
+        self.browser.quit()
+        self.browser = webdriver.Firefox()
 
-        #She visitis that URL - her to-do list is still There
+        #Francis visits the home page. There is no sign of Edith's list.
+        self.browser.get(self.live_server_url)
+        page_text= self.browser.find_element_by_tag_name('body').text
+        self.assertNotIn('Buy peacock feathers', page_text)
+        self.assertNotIn('make a fly', page_text)
 
-        #Satisfied she goes back to sleep
+        #Francis starts a new list by entering a new item.
+        #He is less interesting than Edith
+        self.enter_a_new_item('Buy milk')
 
-        self.fail('Finish the app!')
+        #Franics gets his own url
+        francis_list_url = self.browser.current_url
+        self.assertRegexpMatches(francis_list_url, '/lists/.+')
+        self.assertNotEqual(francis_list_url, edith_list_url)
+
+        #There is still no trace of Edith's list
+        page_text= self.browser.find_element_by_tag_name('body').text
+        self.assertNotIn('Buy peacock feathers', page_text)
+        self.assertIn('Buy milk', page_text)
+
+        #Satisfied they both go back to sleep
